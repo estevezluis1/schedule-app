@@ -7,12 +7,17 @@ import scheduleapp.ScheduleApp;
 
 import java.io.IOException;
 import java.net.URL;
+import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 
 /**
  * Utilities for handling stages and timezones.
  */
 public class Utilities {
+    private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm a");
+
     /**
      * Setup stage for any form.
      * @param stage stage
@@ -43,5 +48,14 @@ public class Utilities {
      */
     public static boolean notWithinBusinessHours (ZonedDateTime zonedDateTime) {
         return (zonedDateTime.getHour() < 8 || zonedDateTime.getHour() > 22 || (zonedDateTime.getHour() == 22 && zonedDateTime.getMinute() > 0));
+    }
+
+    /**
+     * Format local date time for easy reading.
+     * @param localDateTime localDateTime to format.
+     * @return formatted localDateTime.
+     */
+    public static String localDateTimeFormat (LocalDateTime localDateTime) {
+        return localDateTime.format(dateTimeFormatter);
     }
 }

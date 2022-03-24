@@ -83,8 +83,16 @@ public class LoginController {
                 Log.info("User: " + Auth.getActiveUser().getUsername() + " Logged in successfully");
                 ArrayList<Appointment> appointmentArrayList = Appointments.getUpcoming(Auth.getActiveUser().getId());
 
-                String header = appointmentArrayList.size() == 0 ? Resource.getValue("no_upcoming_appointment"): Resource.getValue("upcoming_appointment");
-                String content = appointmentArrayList.size() == 0 ? "" : String.format("ID: %d", appointmentArrayList.get(0).getId());
+
+
+                String header = Resource.getValue("no_upcoming_appointment");
+                String content = "";
+
+                if (appointmentArrayList.size() > 0) {
+                    Appointment appointment = appointmentArrayList.get(0);
+                    header = Resource.getValue("upcoming_appointment");
+                    content =  String.format("ID: %d\tStart Date and Time %s", appointment.getId(), Utilities.localDateTimeFormat(appointment.getStartLocalDateTime()));
+                }
 
                 Control.alertDialog(Resource.getValue("upcoming_appointment_title"), header, content, Alert.AlertType.INFORMATION);
 
@@ -95,7 +103,7 @@ public class LoginController {
                 final int mainViewHeight = 600;
                 final String mainTitle = "Schedule Application";
 
-                Utilities.stageSetup(stage, mainTitle, mainViewWidth, mainViewHeight, false, "main-view.fxml");
+                Utilities.stageSetup(stage, mainTitle, mainViewWidth, mainViewHeight, true, "main-view.fxml");
             } else {
                 Log.info("Failed login attempt. Username: " + username);
                 Control.alertDialog(

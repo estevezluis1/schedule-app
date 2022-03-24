@@ -278,8 +278,9 @@ public class AppointmentDialog<ButtonType> extends Dialog<ButtonType> {
         }
 
         try {
-            if (!Appointments.isSlotOpen(startDateTime.toLocalDateTime(), endDateTime.toLocalDateTime(), appointment.getId())) {
-                Control.alertDialog("Appointment Overlap", "Appointment time overlaps with another existing appointment.", "Please choose a different time slot.", Alert.AlertType.ERROR);
+            Appointment existingAppointmentInSlot = Appointments.getAppointmentInSlot(startDateTime.toLocalDateTime(), endDateTime.toLocalDateTime(), appointment.getId());
+            if (existingAppointmentInSlot != null) {
+                Control.alertDialog("Appointment Overlap", "Appointment time overlaps with existing appointment.", String.format("Overlaps with Appointment ID: %d\nPlease choose a different time slot.", existingAppointmentInSlot.getId()), Alert.AlertType.ERROR);
                 event.consume();
                 return;
             }

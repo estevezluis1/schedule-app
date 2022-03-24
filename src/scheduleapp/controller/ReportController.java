@@ -1,5 +1,6 @@
 package scheduleapp.controller;
 
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.ComboBox;
@@ -15,9 +16,9 @@ import scheduleapp.model.Contact;
 import scheduleapp.model.Customer;
 import scheduleapp.model.MonthCountType;
 import scheduleapp.utils.Control;
+import scheduleapp.utils.Utilities;
 
 import java.sql.SQLException;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 
 /**
@@ -39,16 +40,16 @@ public class ReportController {
     @FXML private TableView<Appointment> contactTableView;
 
     // contactTableView TableColumns
-    @FXML private TableColumn<Integer, Appointment> aIdColumn;
-    @FXML private TableColumn<String, Appointment> aLocationColumn;
-    @FXML private TableColumn<String, Appointment> aTypeColumn;
-    @FXML private TableColumn<Integer, Appointment> aCustomerIdColumn;
-    @FXML private TableColumn<String, Appointment> aTitleColumn;
-    @FXML private TableColumn<String, Appointment> aDescColumn;
-    @FXML private TableColumn<Integer, Appointment> aContactColumn;
-    @FXML private TableColumn<LocalDateTime, Appointment> aStartColumn;
-    @FXML private TableColumn<LocalDateTime, Appointment> aEndColumn;
-    @FXML private TableColumn<Integer, Appointment> aUserIdColumn;
+    @FXML private TableColumn<Appointment, Integer> aIdColumn;
+    @FXML private TableColumn<Appointment, String> aLocationColumn;
+    @FXML private TableColumn<Appointment, String> aTypeColumn;
+    @FXML private TableColumn<Appointment, Integer> aCustomerIdColumn;
+    @FXML private TableColumn<Appointment, String> aTitleColumn;
+    @FXML private TableColumn<Appointment, String> aDescColumn;
+    @FXML private TableColumn<Appointment, Integer> aContactColumn;
+    @FXML private TableColumn<Appointment, String> aStartColumn;
+    @FXML private TableColumn<Appointment, String> aEndColumn;
+    @FXML private TableColumn<Appointment, Integer> aUserIdColumn;
 
     @FXML
     protected void initialize () {
@@ -58,8 +59,12 @@ public class ReportController {
         aLocationColumn.setCellValueFactory(new PropertyValueFactory<>("location"));
         aContactColumn.setCellValueFactory(new PropertyValueFactory<>("contactId"));
         aTypeColumn.setCellValueFactory(new PropertyValueFactory<>("type"));
-        aStartColumn.setCellValueFactory(new PropertyValueFactory<>("startLocalDateTime"));
-        aEndColumn.setCellValueFactory(new PropertyValueFactory<>("endLocalDateTime"));
+        aStartColumn.setCellValueFactory(appointmentStringCellDataFeatures -> new SimpleStringProperty(
+                Utilities.localDateTimeFormat(appointmentStringCellDataFeatures.getValue().getStartLocalDateTime()))
+        );
+        aEndColumn.setCellValueFactory(appointmentStringCellDataFeatures -> new SimpleStringProperty(
+                Utilities.localDateTimeFormat(appointmentStringCellDataFeatures.getValue().getEndLocalDateTime()))
+        );
         aUserIdColumn.setCellValueFactory(new PropertyValueFactory<>("userId"));
         aCustomerIdColumn.setCellValueFactory(new PropertyValueFactory<>("customerId"));
         Control.setCellFactoryComboBox(customerComboBox);
@@ -91,8 +96,12 @@ public class ReportController {
             MonthCountType monthCount = monthComboBox.getSelectionModel().getSelectedItem();
 
             monthTypeLabel.setText(
-                monthCount.getMonthCount() + " appointments with TYPE: \"" +
-                        monthCount.getType() + "\" in MONTH: \"" + monthCount.getMonth()
+                    String.format(
+                            "%d appointment(s) with Type: \"%s\" in Month: \"%s\"",
+                            monthCount.getMonthCount(),
+                            monthCount.getType(),
+                            monthCount.getMonth()
+                    )
             );
         });
 

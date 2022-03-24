@@ -1,5 +1,6 @@
 package scheduleapp.controller;
 
+import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
@@ -22,8 +23,11 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.TemporalField;
+import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Locale;
 import java.util.Optional;
 
 /**
@@ -46,16 +50,16 @@ public class MainController {
     @FXML private TableView<Customer> customerTableView;
 
     // appointmentTableView TableColumns
-    @FXML private TableColumn<Integer, Appointment> aIdColumn;
-    @FXML private TableColumn<String, Appointment> aLocationColumn;
-    @FXML private TableColumn<String, Appointment> aTypeColumn;
-    @FXML private TableColumn<Integer, Appointment> aCustomerIdColumn;
-    @FXML private TableColumn<String, Appointment> aTitleColumn;
-    @FXML private TableColumn<String, Appointment> aDescColumn;
-    @FXML private TableColumn<Integer, Appointment> aContactColumn;
-    @FXML private TableColumn<LocalDateTime, Appointment> aStartColumn;
-    @FXML private TableColumn<LocalDateTime, Appointment> aEndColumn;
-    @FXML private TableColumn<Integer, Appointment> aUserIdColumn;
+    @FXML private TableColumn<Appointment, Integer> aIdColumn;
+    @FXML private TableColumn<Appointment, String> aLocationColumn;
+    @FXML private TableColumn<Appointment, String> aTypeColumn;
+    @FXML private TableColumn<Appointment, Integer> aCustomerIdColumn;
+    @FXML private TableColumn<Appointment, String> aTitleColumn;
+    @FXML private TableColumn<Appointment, String> aDescColumn;
+    @FXML private TableColumn<Appointment, Integer> aContactColumn;
+    @FXML private TableColumn<Appointment, String> aStartColumn;
+    @FXML private TableColumn<Appointment, String> aEndColumn;
+    @FXML private TableColumn<Appointment, Integer> aUserIdColumn;
 
     // customerTableView TableColumns
     @FXML private TableColumn<Integer, Customer> cIdColumn;
@@ -146,8 +150,13 @@ public class MainController {
         aLocationColumn.setCellValueFactory(new PropertyValueFactory<>("location"));
         aContactColumn.setCellValueFactory(new PropertyValueFactory<>("contactId"));
         aTypeColumn.setCellValueFactory(new PropertyValueFactory<>("type"));
-        aStartColumn.setCellValueFactory(new PropertyValueFactory<>("startLocalDateTime"));
-        aEndColumn.setCellValueFactory(new PropertyValueFactory<>("endLocalDateTime"));
+
+        aStartColumn.setCellValueFactory(appointmentStringCellDataFeatures -> new SimpleStringProperty(
+                Utilities.localDateTimeFormat(appointmentStringCellDataFeatures.getValue().getStartLocalDateTime()))
+        );
+        aEndColumn.setCellValueFactory(appointmentStringCellDataFeatures -> new SimpleStringProperty(
+                Utilities.localDateTimeFormat(appointmentStringCellDataFeatures.getValue().getEndLocalDateTime()))
+        );
         aUserIdColumn.setCellValueFactory(new PropertyValueFactory<>("userId"));
         aCustomerIdColumn.setCellValueFactory(new PropertyValueFactory<>("customerId"));
 
@@ -175,25 +184,30 @@ public class MainController {
             return;
         }
 
+        TemporalField localeWeek = WeekFields.of(Locale.getDefault()).dayOfWeek();
+
         LocalDate localDate = LocalDate.now();
+
         LocalDateTime start;
         LocalDateTime end;
 
         if (monthRadioButton.isSelected()) {
             LocalDateTime firstDayOfMonth = localDate.withDayOfMonth(1).atStartOfDay();
-            LocalDateTime lastDayOfMonth = localDate.withDayOfMonth(localDate.lengthOfMonth()).atStartOfDay();
+            LocalDateTime lastDayOfMonth = localDate.withDayOfMonth(localDate.lengthOfMonth()).atTime(23, 59, 59);
 
             start = firstDayOfMonth;
             end = lastDayOfMonth;
         } else {
-            int daysToFirstDayOfWeek = localDate.getDayOfWeek().getValue();
-            int daysToLastDayOfWeek = (7 - daysToFirstDayOfWeek) - 1;
+            int daysToFirstDayOfWeek = localDate.get(localeWeek) - 1;
+            int daysToLastDayOfWeek = 7 - daysToFirstDayOfWeek - 1;
 
-            LocalDateTime firstDayOfWeek = localDate.minusDays(daysToFirstDayOfWeek).atStartOfDay();
-            LocalDateTime lastDayOfWeek = localDate.plusDays(daysToLastDayOfWeek).atStartOfDay();
+            LocalDateTime firstDayOfWeek = localDate.minusDays(daysToFirstDayOfWeek).atTime(0, 0, 0);
+            LocalDateTime lastDayOfWeek = localDate.plusDays(daysToLastDayOfWeek).atTime(23, 59, 59);
 
             start = firstDayOfWeek;
             end = lastDayOfWeek;
+
+            System.out.println(start + " " + end);
         }
         fetchAndSetAppointments(start, end);
     }
@@ -267,9 +281,30 @@ public class MainController {
             return;
         }
 
-        if (!Control.confirmationDialog("Delete confirmation", "Are you sure?", selected.getSelectedItem().getName() + " will be deleted along with all past and upcoming appointments.", Alert.AlertType.CONFIRMATION)) {
+        Customer customer = selected.getSelectedItem();
+
+        int numOfAppointments = 0;
+        try {
+            numOfAppointments = Appointments.getAllById(customer.getId(), "Customer_ID").size();
+        } catch (SQLException sqlException) {
+            System.out.println(sqlException.getMessage());
+        }
+
+        if (!Control.confirmationDialog(
+                "Delete confirmation",
+                "Are you sure?",
+                String.format("%s will be deleted along with all past and upcoming (%d) appointments.", customer.getName(), numOfAppointments),
+                Alert.AlertType.CONFIRMATION
+        )) {
             return;
         }
+
+        Control.alertDialog(
+                "Customer Deleted",
+                "You've successfully deleted the following customer:",
+                String.format("ID: %d\tName: %s | Deleted %d attached appointments", customer.getId(), customer.getName(), numOfAppointments),
+                Alert.AlertType.INFORMATION
+        );
 
         try {
             Customers.delete(selected.getSelectedItem());
@@ -313,9 +348,18 @@ public class MainController {
             return;
         }
 
-        if (!Control.confirmationDialog("Delete confirmation", String.valueOf(selected.getSelectedItem().getId()), "Are you sure?", Alert.AlertType.CONFIRMATION)) {
+        Appointment appointment = selected.getSelectedItem();
+
+        if (!Control.confirmationDialog("Delete confirmation", String.format("Delete Appointment with ID: %d\tType: %s", appointment.getId(), appointment.getType()), "Are you sure?", Alert.AlertType.CONFIRMATION)) {
             return;
         }
+
+        Control.alertDialog(
+                "Appointment Deleted",
+                "You've successfully deleted the following appointment:",
+                String.format("ID: %d\tType: %s\tStart Date Time: %s", appointment.getId(), appointment.getType(), appointment.getStartLocalDateTime()),
+                Alert.AlertType.INFORMATION
+        );
 
         try {
             Appointments.delete(selected.getSelectedItem());

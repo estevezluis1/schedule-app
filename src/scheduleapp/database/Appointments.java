@@ -91,16 +91,35 @@ public class Appointments {
      * @return true, if no appointment is within start and end time.
      * @throws SQLException throws SQLException if error occurs
      */
-    public static boolean isSlotOpen (LocalDateTime start, LocalDateTime end, int appointmentId) throws SQLException {
-        final String query = "SELECT 1 FROM appointments WHERE Start <= ? AND End >= ? AND Appointment_ID <> ?;";
+    public static Appointment getAppointmentInSlot (LocalDateTime start, LocalDateTime end, int appointmentId) throws SQLException {
+
+        final String query = "SELECT * FROM appointments WHERE ((Start <= ? AND End >= ?) OR (Start >= ? AND Start <= ? AND End <= ?)" +
+                "  OR (End <= ? AND End >= ? AND Start <= ?) OR (Start >= ? AND Start <= ?)) AND Appointment_ID <> ?;";
 
         PreparedStatement preparedStatement = Database.getPreparedStatement(query);
 
-        preparedStatement.setTimestamp(1, Timestamp.valueOf(start));
-        preparedStatement.setTimestamp(2, Timestamp.valueOf(end));
-        preparedStatement.setInt(3, appointmentId);
+        preparedStatement.setTimestamp(1, Timestamp.valueOf(end));
+        preparedStatement.setTimestamp(2, Timestamp.valueOf(start));
+        preparedStatement.setTimestamp(3, Timestamp.valueOf(end));
+        preparedStatement.setTimestamp(4, Timestamp.valueOf(start));
+        preparedStatement.setTimestamp(5, Timestamp.valueOf(start));
 
-        return !preparedStatement.executeQuery().next();
+        preparedStatement.setTimestamp(6, Timestamp.valueOf(start));
+        preparedStatement.setTimestamp(7, Timestamp.valueOf(end));
+        preparedStatement.setTimestamp(8, Timestamp.valueOf(end));
+        preparedStatement.setTimestamp(9, Timestamp.valueOf(end));
+        preparedStatement.setTimestamp(10, Timestamp.valueOf(start));
+        preparedStatement.setInt(11, appointmentId);
+
+        ResultSet resultSet = preparedStatement.executeQuery();
+
+        ArrayList<Appointment> results = parseResultSet(resultSet);
+
+        if (results.size() > 0) {
+            return results.get(0);
+        }
+
+        return null;
     }
 
     /**
